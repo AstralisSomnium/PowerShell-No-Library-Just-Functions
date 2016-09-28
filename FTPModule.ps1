@@ -32,16 +32,27 @@ function Parse-Output($output, [System.Management.Automation.SwitchParameter]$fi
 #Get-FtpChildItemHidden -ftpFilePath "ftp://myHost.com/root/leaf/" -userName "User" -password "pw" -File -Directory
 function Get-FtpChildItemHidden($ftpFolderPath, $userName, $password, [System.Management.Automation.SwitchParameter]$file, [System.Management.Automation.SwitchParameter]$directory) {
     $ftpUrl = New-Object System.Uri($ftpFolderPath)
-    $getHiddenFilesScript = "$env:TMP\getHiddenEntity.dat"
-    $outPutEntity = "$env:TMP\hiddenEntity.txt"
+    $getHiddenFilesScript = "$env:TMP\$([guid]::NewGuid()).dat"
+    $outPutEntity = "$env:TMP\$([guid]::NewGuid()).txt"
     $commands = @("open $($ftpUrl.Host)", $userName, $password, "cd $($ftpUrl.PathAndQuery)", "ls -la", "bye" )
     $commands | foreach {
         Add-Content $getHiddenFilesScript -Value $_
     }
-    ftp -s:$getHiddenFilesScript > $outPutEntity
-    Remove-Item $getHiddenFilesScript -Force
-    $ftpOutput = Get-Content $outPutEntity
-    Remove-Item $outPutEntity -Force
+    try {
+        $old =$ErrorActionPreference
+        $ErrorActionPreference = "stop"
+        ftp -s:$getHiddenFilesScript > $outPutEntity
+    } catch {
+        if($_.Exception.Message -eq "Connection closed by remote host.") {
+            Write-Host "Failed to get hidden entities with ftp.exe for '$ftpFolderPath', usually because passive can not be used. Trying again.."
+            return Get-FtpChildItemHidden -ftpFolderPath $ftpFolderPath -userName $username -password $password -file:$file -directory:$directory
+        }
+    } finally {
+        $ErrorActionPreference = $old
+        Remove-Item $getHiddenFilesScript -Force
+        $ftpOutput = Get-Content $outPutEntity
+        Remove-Item $outPutEntity -Force
+    }
 
     $startEntityOutput = ".."
     $endEntityOutput = "226 Directory send OK."
