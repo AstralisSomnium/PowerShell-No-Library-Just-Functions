@@ -29,7 +29,7 @@ function Parse-Output($output, [System.Management.Automation.SwitchParameter]$fi
     return $entities
 }
 
-#Get-FtpChildItemHidden -ftpFilePath "ftp://myHost.com/root/leaf/" -userName "User" -password "pw" -File -Directory
+#Get-FtpChildItemHidden -ftpFolderPath "ftp://myHost.com/root/leaf/" -userName "User" -password "pw" -File -Directory
 function Get-FtpChildItemHidden($ftpFolderPath, $userName, $password, [System.Management.Automation.SwitchParameter]$file, [System.Management.Automation.SwitchParameter]$directory) {
     $ftpUrl = New-Object System.Uri($ftpFolderPath)
     $getHiddenFilesScript = "$env:TMP\$([guid]::NewGuid()).dat"
